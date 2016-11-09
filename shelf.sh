@@ -27,7 +27,8 @@ function add_file_time(){
 	cat $QUCHONG | while read LINE
 		do
 			if [ -f $FILEROOT$LINE ];then
-				ls -full $FILEROOT$LINE | awk '{print $8}' | base64 | awk '{print "'$LINE'?v="$1}' >> $TIMEFILE
+				version=$(ls -full $FILEROOT$LINE | awk '{print $8}' | base64) 
+				echo $LINE?v=$version >> $TIMEFILE
 			else
 				echo >> $TIMEFILE
 			fi
@@ -39,10 +40,30 @@ function quchong(){
 	rm $OPTFILE
 }
 
-#function replace_them_in_view(){
-	
-#}
+function for_in_script(){
+	cat $TIMEFILE | while read LINE
+	do
+		PART=$(echo $LINE | sed '/^$/d' | sed 's/\?.*$//g' | sed "s:\/:\\\/:g")
+		LINE=$(echo $LINE | sed "s:\/:\\\/:g")
+    	replace_in_view $LINE $PART $VIEW
+	done
+}
+
+function replace_in_view(){
+	filelist=$(ls $3)
+	for file in $filelist
+	do
+		if [ -f $3/$file ];then
+			sed -i "" "s/src=\"$2.*\"/src=\"$1\"/g" $3/$file
+		fi
+		if [ -d $3/$file ];then
+			replace_in_view $1 $2 $3/$file
+		fi
+	done
+}
+
 
 for_in_file $VIEW
 quchong
 add_file_time
+for_in_script
